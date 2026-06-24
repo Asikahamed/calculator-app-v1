@@ -1,0 +1,230 @@
+CI/CD Helper Agent Capability Test Cases
+
+Purpose:
+Validate all capabilities of the CI/CD Helper Agent and demonstrate agent execution during demo sessions.
+
+==================================================
+TEST 01 - AGENT LOADING TEST
+==================================================
+
+Prompt:
+Use CI/CD Helper Agent.
+
+What capabilities do you have?
+
+Expected:
+- List capabilities only
+- No files generated
+- No workflow generated
+- No Dockerfile generated
+
+Status:
+[ ] PASS
+[ ] FAIL
+
+==================================================
+TEST 02 - CI/CD PIPELINE GENERATION
+==================================================
+
+Prompt:
+Use CI/CD Helper Agent.
+
+Generate a production-ready GitHub Actions CI pipeline for this Java Maven application.
+
+Requirements:
+- Java 21
+- Build
+- Unit Test
+- Upload Artifacts
+
+Generate only:
+- .github/workflows/ci.yml
+
+==================================================
+TEST 03 - DOCKERFILE GENERATION
+==================================================
+
+Prompt:
+Use CI/CD Helper Agent.
+
+Generate containerization assets.
+
+Requirements:
+- Multi-stage Docker build
+- Non-root user
+- Small image size
+
+Generate only:
+- Dockerfile
+- .dockerignore
+
+==================================================
+TEST 04 - TERRAFORM GENERATION
+==================================================
+
+Prompt:
+Use CI/CD Helper Agent.
+
+Generate Terraform for Google Artifact Registry.
+
+Generate only Terraform assets.
+
+==================================================
+TEST 05 - KUBERNETES MANIFEST GENERATION
+==================================================
+
+Prompt:
+Use CI/CD Helper Agent.
+
+Generate Kubernetes deployment assets.
+
+Requirements:
+- Deployment
+- Service
+- ConfigMap
+- HPA
+
+Generate only Kubernetes manifests.
+
+==================================================
+TEST 06 - HELM CHART GENERATION
+==================================================
+
+Prompt:
+Use CI/CD Helper Agent.
+
+Generate Helm chart for this Spring Boot application.
+
+Generate only Helm assets.
+
+==================================================
+TEST 07 - TRIVY SECURITY SCAN
+==================================================
+
+Prompt:
+Use security prompt.
+
+Add Trivy container scanning.
+
+Generate only security assets.
+
+==================================================
+TEST 08 - OWASP DEPENDENCY CHECK
+==================================================
+
+Prompt:
+Use security prompt.
+
+Add OWASP Dependency Check.
+
+Generate only security assets.
+
+==================================================
+TEST 09 - GITLEAKS SECRET SCANNING
+==================================================
+
+Prompt:
+Use security prompt.
+
+Add Gitleaks secret scanning.
+
+Generate only security assets.
+
+==================================================
+TEST 10 - SBOM GENERATION
+==================================================
+
+Prompt:
+Use security prompt.
+
+Generate SBOM using Syft.
+
+Generate only security assets.
+
+==================================================
+TEST 11 - VERACODE INTEGRATION
+==================================================
+
+Prompt:
+Use security prompt.
+
+Generate Veracode GitHub Actions integration.
+
+Generate only security assets.
+
+==================================================
+TEST 12 - PRISMA CLOUD INTEGRATION
+==================================================
+
+Prompt:
+Use security prompt.
+
+Generate Prisma Cloud scan workflow.
+
+Generate only security assets.
+
+==================================================
+TEST 13 - OBSERVABILITY GENERATION
+==================================================
+
+Prompt:
+Use observability prompt.
+
+Generate monitoring integration.
+
+Requirements:
+- Prometheus
+- Grafana
+
+Generate only observability assets.
+
+==================================================
+TEST 14 - COMPLETE PLATFORM STACK
+==================================================
+
+Prompt:
+Use CI/CD Helper Agent.
+
+For this Java application generate:
+
+1. GitHub Actions pipeline
+2. Dockerfile
+3. Trivy scan
+4. OWASP Dependency Check
+5. SBOM generation
+6. Terraform for Google Artifact Registry
+7. Kubernetes deployment
+8. Helm chart
+
+Generate production-ready assets only.
+
+==================================================
+TEST 15 - AGENT DEFINITION MODE
+==================================================
+
+Prompt:
+Create a new agent called Python CI/CD Agent.
+
+Do not generate any workflows, Dockerfiles, Terraform, Kubernetes manifests, or security configurations.
+
+Generate only agent files.
+
+==================================================
+FINAL VALIDATION MATRIX
+==================================================
+
+[ ] Agent Loading
+[ ] CI/CD Pipeline
+[ ] Dockerfile
+[ ] Terraform
+[ ] Kubernetes
+[ ] Helm
+[ ] Trivy
+[ ] OWASP Dependency Check
+[ ] Gitleaks
+[ ] SBOM
+[ ] Veracode
+[ ] Prisma Cloud
+[ ] Observability
+[ ] Full Platform Stack
+[ ] Agent Definition Mode

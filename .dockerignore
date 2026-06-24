@@ -1,0 +1,28 @@
+# Keep build context small
+target
+**/target
+
+# Git and CI
+.git
+.gitignore
+.github
+.gitattributes
+
+# IDEs and editors
+.idea
+.vscode
+*.iml
+
+# Local build artifacts / caches
+.mvn
+.mvn/wrapper/maven-wrapper.jar
+local-repo
+.settings
+*.log
+
+# Docs, samples, local data not needed for build
+docs
+examples
+tmp
+node_modules
+.DS_Store
