@@ -1,47 +1,28 @@
-# Build outputs
+# Keep build context small
 target
 **/target
 
-# Git metadata and CI configs
+# Git and CI
 .git
 .gitignore
 .github
 .gitattributes
 
-# IDE/editor
+# IDEs and editors
 .idea
 .vscode
 *.iml
 
-# Maven wrapper and caches (already cached in build)
+# Local build artifacts / caches
+.mvn
 .mvn/wrapper/maven-wrapper.jar
 local-repo
 .settings
-
-# Logs and OS files
 *.log
-.DS_Store
-```// filepath: /Users/interlink/Desktop/app/calculator-app-v1/.dockerignore
-# Build outputs
-target
-**/target
 
-# Git metadata and CI configs
-.git
-.gitignore
-.github
-.gitattributes
-
-# IDE/editor
-.idea
-.vscode
-*.iml
-
-# Maven wrapper and caches (already cached in build)
-.mvn/wrapper/maven-wrapper.jar
-local-repo
-.settings
-
-# Logs and OS files
-*.log
+# Docs, samples, local data not needed for build
+docs
+examples
+tmp
+node_modules
 .DS_Store
