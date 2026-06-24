@@ -1,0 +1,64 @@
+name: "GCP Cloud Run CD (deploy Docker Hub image)"
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
+
+concurrency:
+  group: cd-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  REGION: us-central1
+  IMAGE_NAME: ${{ github.event.repository.name }}
+  SERVICE_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  deploy-to-cloud-run:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Install gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          export_default_credentials: true
+
+      - name: Determine image tag
+        id: img
+        run: |
+          TAG="${{ github.event.inputs.image_tag || 'latest' }}"
+          echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+          echo "IMAGE_REF=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${TAG}" >> $GITHUB_ENV
+
+      - name: Deploy to Cloud Run (managed)
+        run: |
+          echo "Deploying ${IMAGE_REF} to Cloud Run service ${SERVICE_NAME} in ${REGION}"
+          gcloud run deploy "${SERVICE_NAME}" \
+            --image "${IMAGE_REF}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --quiet
+
+      - name: Output service URL
+        run: |
+          gcloud run services describe "${SERVICE_NAME}" --region "${REGION}" --format="value(status.url)"
