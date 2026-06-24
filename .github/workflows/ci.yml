@@ -1,0 +1,97 @@
+name: "Java Maven CI"
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'release/*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build · Test · Artifacts
+    runs-on: ubuntu-latest
+    env:
+      MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Maven local repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-${{ runner.os }}-
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: 'none'
+
+      - name: Determine Maven command
+        id: mvn
+        run: |
+          if [ -f ./mvnw ]; then
+            chmod +x ./mvnw
+            echo "MAVEN_CMD=./mvnw" >> $GITHUB_OUTPUT
+          else
+            echo "MAVEN_CMD=mvn" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and run tests (parallel where supported)
+        env:
+          MAVEN_CMD: ${{ steps.mvn.outputs.MAVEN_CMD }}
+        run: |
+          set -euo pipefail
+          echo "Using Maven command: $MAVEN_CMD"
+          # Use verify to run tests and integration tests; keep output reproducible
+          $MAVEN_CMD -B -T 1C -e -DskipTests=false verify
+
+      - name: Collect test reports
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/test-reports
+          # common surefire/failsafe folders
+          cp -r **/target/surefire-reports $GITHUB_WORKSPACE/test-reports 2>/dev/null || true
+          cp -r **/target/failsafe-reports $GITHUB_WORKSPACE/test-reports 2>/dev/null || true
+
+      - name: Upload test results (artifacts)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: $GITHUB_WORKSPACE/test-reports
+          if-no-files-found: ignore
+
+      - name: Upload built JAR/WAR artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            **/target/*.jar
+            **/target/*.war
+            **/target/*.ear
+          if-no-files-found: ignore
+
+      - name: Show summary
+        if: always()
+        run: |
+          echo "Artifacts and test reports uploaded. Inspect job artifacts in the Actions UI."
