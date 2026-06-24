@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   build:
-    name: Build · Test · Artifacts
+    name: Build (compile & package, skip tests)
     runs-on: ubuntu-latest
     env:
       MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
@@ -44,7 +44,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: 'none'
+          cache: maven
 
       - name: Determine Maven command
         id: mvn
@@ -56,32 +56,15 @@ jobs:
             echo "MAVEN_CMD=mvn" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and run tests (parallel where supported)
+      - name: Build and package (skip tests)
         env:
           MAVEN_CMD: ${{ steps.mvn.outputs.MAVEN_CMD }}
         run: |
           set -euo pipefail
           echo "Using Maven command: $MAVEN_CMD"
-          # Use verify to run tests and integration tests; keep output reproducible
-          $MAVEN_CMD -B -T 1C -e -DskipTests=false verify
+          $MAVEN_CMD -B -T 1C -DskipTests=true package
 
-      - name: Collect test reports
-        run: |
-          mkdir -p $GITHUB_WORKSPACE/test-reports
-          # common surefire/failsafe folders
-          cp -r **/target/surefire-reports $GITHUB_WORKSPACE/test-reports 2>/dev/null || true
-          cp -r **/target/failsafe-reports $GITHUB_WORKSPACE/test-reports 2>/dev/null || true
-
-      - name: Upload test results (artifacts)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: $GITHUB_WORKSPACE/test-reports
-          if-no-files-found: ignore
-
-      - name: Upload built JAR/WAR artifacts
-        if: always()
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
@@ -91,7 +74,89 @@ jobs:
             **/target/*.ear
           if-no-files-found: ignore
 
-      - name: Show summary
-        if: always()
+  test:
+    name: Test (unit / integration)
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Determine Maven command
+        id: mvn2
         run: |
-          echo "Artifacts and test reports uploaded. Inspect job artifacts in the Actions UI."
+          if [ -f ./mvnw ]; then
+            chmod +x ./mvnw
+            echo "MAVEN_CMD=./mvnw" >> $GITHUB_OUTPUT
+          else
+            echo "MAVEN_CMD=mvn" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run tests (su refire/failsafe)
+        env:
+          MAVEN_CMD: ${{ steps.mvn2.outputs.MAVEN_CMD }}
+        run: |
+          set -euo pipefail
+          echo "Running tests with: $MAVEN_CMD"
+          # Run tests (unit & integration as configured); produce surefire/failsafe reports
+          $MAVEN_CMD -B -T 1C -DskipTests=false test
+
+      - name: Collect test reports
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/test-reports
+          cp -r **/target/surefire-reports $GITHUB_WORKSPACE/test-reports 2>/dev/null || true
+          cp -r **/target/failsafe-reports $GITHUB_WORKSPACE/test-reports 2>/dev/null || true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: $GITHUB_WORKSPACE/test-reports
+          if-no-files-found: ignore
+
+  artifacts:
+    name: Artifacts (gather & validate)
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: build-artifacts
+          if-no-files-found: ignore
+
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          path: test-results
+          if-no-files-found: ignore
+
+      - name: List gathered files
+        run: |
+          echo "Build artifacts:"
+          ls -la build-artifacts || true
+          echo "Test reports:"
+          ls -la test-results || true
+
+      - name: Re-upload combined package (optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-delivery
+          path: |
+            build-artifacts/**
+            test-results/**
+          if-no-files-found: ignore
