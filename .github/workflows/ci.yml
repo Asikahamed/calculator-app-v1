@@ -78,6 +78,8 @@ jobs:
     name: Test (unit / integration)
     runs-on: ubuntu-latest
     needs: build
+    outputs:
+      test_reports_present: ${{ steps.check_reports.outputs.found }}
     env:
       MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
     steps:
@@ -114,7 +116,6 @@ jobs:
         run: |
           set -euo pipefail
           echo "Running tests with virtual X server via xvfb-run"
-          # xvfb-run provides a DISPLAY so tests that need AWT/graphics succeed.
           xvfb-run -a -s "-screen 0 1920x1080x24" $MAVEN_CMD -B -T 1C -DskipTests=false test
 
       - name: Collect test reports
@@ -123,13 +124,24 @@ jobs:
           cp -r **/target/surefire-reports $GITHUB_WORKSPACE/test-reports 2>/dev/null || true
           cp -r **/target/failsafe-reports $GITHUB_WORKSPACE/test-reports 2>/dev/null || true
 
+      - name: Check for test reports
+        id: check_reports
+        run: |
+          set -e
+          REPORT_COUNT=$(find $GITHUB_WORKSPACE/test-reports -type f | wc -l || true)
+          if [ "${REPORT_COUNT:-0}" -gt 0 ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Upload test results
-        if: always()
+        if: steps.check_reports.outputs.found == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: $GITHUB_WORKSPACE/test-reports
-          if-no-files-found: ignore
+
 
   artifacts:
     name: Artifacts (gather & validate)
@@ -144,24 +156,13 @@ jobs:
           if-no-files-found: ignore
 
       - name: Download test results
+        if: needs.test.outputs.test_reports_present == 'true'
         uses: actions/download-artifact@v4
         with:
           name: test-results
           path: test-results
           if-no-files-found: ignore
 
-      - name: List gathered files
-        run: |
-          echo "Build artifacts:"
-          ls -la build-artifacts || true
-          echo "Test reports:"
-          ls -la test-results || true
-
-      - name: Re-upload combined package (optional)
-        uses: actions/upload-artifact@v4
-        with:
-          name: pipeline-delivery
-          path: |
-            build-artifacts/**
-            test-results/**
-          if-no-files-found: ignore
+      - name: Skip test results notice
+        if: needs.test.outputs.test_reports_present != 'true'
+        run: echo "No test-results artifact produced by test job; skipping download."
