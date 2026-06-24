@@ -103,14 +103,19 @@ jobs:
             echo "MAVEN_CMD=mvn" >> $GITHUB_OUTPUT
           fi
 
-      - name: Run tests (su refire/failsafe)
+      - name: Install Xvfb and minimal GUI libs (for AWT/Swing tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgtk-3-0 libxrender1 libxtst6 fontconfig
+
+      - name: Run tests under virtual X server (Xvfb)
         env:
           MAVEN_CMD: ${{ steps.mvn2.outputs.MAVEN_CMD }}
         run: |
           set -euo pipefail
-          echo "Running tests with: $MAVEN_CMD"
-          # Run tests (unit & integration as configured); produce surefire/failsafe reports
-          $MAVEN_CMD -B -T 1C -DskipTests=false test
+          echo "Running tests with virtual X server via xvfb-run"
+          # xvfb-run provides a DISPLAY so tests that need AWT/graphics succeed.
+          xvfb-run -a -s "-screen 0 1920x1080x24" $MAVEN_CMD -B -T 1C -DskipTests=false test
 
       - name: Collect test reports
         run: |
