@@ -180,13 +180,18 @@ jobs:
     name: Build & Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     needs: [build, test]
-    env:
-      IMAGE_NAME: ${{ env.IMAGE_NAME }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Determine image name
+        id: image
+        run: |
+          # use the repository name as image name (owner/repo -> repo)
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          echo "IMAGE_NAME=$REPO_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -208,14 +213,9 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.image.outputs.IMAGE_NAME }}:${{ github.sha }}
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.image.outputs.IMAGE_NAME }}:latest
 
       - name: Output image reference
-        shell: bash
-        env:
-          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
-          IMG_NAME: ${{ env.IMAGE_NAME }}
-          COMMIT_SHA: ${{ github.sha }}
         run: | 
-          echo "Pushed image: docker.io/$DOCKER_USER/$IMG_NAME:$COMMIT_SHA"
+          echo "Pushed image: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.image.outputs.IMAGE_NAME }}:${{ github.sha }}"
