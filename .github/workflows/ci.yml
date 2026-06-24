@@ -212,4 +212,10 @@ jobs:
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Output image reference
-        run: echo "Pushed image: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+        shell: bash
+        env:
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          IMG_NAME: ${{ env.IMAGE_NAME }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: | 
+          echo "Pushed image: docker.io/$DOCKER_USER/$IMG_NAME:$COMMIT_SHA"
